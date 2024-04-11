@@ -32,15 +32,15 @@ int taskId = Asynchronizer::Interval([](){
 }, 10000);
 ```
 > Creates an Interval and returns the intervalId
-```
 
+```
 bool hasBeenUpdated = Asynchronizer::UpdateInterval(taskId, [](){
    Serial.println("Now this text will be printed every 5 seconds");
 }, 5000);
 ```
 > Updates an Interval and returns true if the Interval has been updated or false if it has not been updated
-```
 
+```
 taskId = Asynchronizer::CreateOrUpdateInterval(taskId, [](){
   Serial.println("Now this text will be printed every 4 seconds");
 }, 4000);
