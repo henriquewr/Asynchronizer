@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <string>
-#include "Asynchronizer/Asynchronizer.h"
+#include "Asynchronizer.h"
 
 static std::vector<Task*> tasks;
 
@@ -28,9 +28,9 @@ void Asynchronizer::Check() {
     }
 }
 
-#pragma region Timeout
+#pragma region Interval
 
-int Asynchronizer::Timeout(std::function<void()> callback, unsigned long timeMs) {
+int Asynchronizer::Interval(std::function<void()> callback, unsigned long timeMs) {
     auto task = Asynchronizer::CreateTask(callback, timeMs);
 
     task->afterFire = [task, timeMs](){
@@ -40,7 +40,7 @@ int Asynchronizer::Timeout(std::function<void()> callback, unsigned long timeMs)
     return task->taskId;
 }
 
-bool Asynchronizer::UpdateTimeout(int taskId, std::function<void()> callback, unsigned long timeMs) {
+bool Asynchronizer::UpdateInterval(int taskId, std::function<void()> callback, unsigned long timeMs) {
     auto task = Asynchronizer::GetTaskById(taskId);
     if(task == NULL){
         return false;
@@ -54,18 +54,18 @@ bool Asynchronizer::UpdateTimeout(int taskId, std::function<void()> callback, un
     return true;
 }
 
-int Asynchronizer::CreateOrUpdateTimeout(int taskId, std::function<void()> callback, unsigned long timeMs) {
-    auto result = Asynchronizer::UpdateTimeout(taskId, callback, timeMs);
+int Asynchronizer::CreateOrUpdateInterval(int taskId, std::function<void()> callback, unsigned long timeMs) {
+    auto result = Asynchronizer::UpdateInterval(taskId, callback, timeMs);
 
     if(result == false){
-        auto newTaskId = Asynchronizer::Timeout(callback, timeMs);
+        auto newTaskId = Asynchronizer::Interval(callback, timeMs);
         return newTaskId;
     }
     
     return taskId;
 }
 
-#pragma endregion Timeout
+#pragma endregion Interval
 
 #pragma region Delay
 
@@ -114,24 +114,24 @@ void Asynchronizer::CancelAll() {
     tasks.clear();
 }
 
+bool Asynchronizer::IsRunning(int taskId) {
+    bool isRunning = std::any_of(tasks.begin(), tasks.end(), [taskId](auto task) {
+        return task->taskId == taskId;
+    });
+    return isRunning;
+}
+
 #pragma region PRIVATE
 
 int Asynchronizer::GenerateId(){
     auto id = rand();
 
-    if(id == 0 || Asynchronizer::ContainsId(id))
+    if(id == 0 || Asynchronizer::IsRunning(id))
     {
         return Asynchronizer::GenerateId();
     }
 
     return id;
-}
-
-bool Asynchronizer::ContainsId(int taskId) {
-    bool containsId = std::any_of(tasks.begin(), tasks.end(), [taskId](auto task) {
-        return task->taskId == taskId;
-    });
-    return containsId;
 }
 
 Task* Asynchronizer::GetTaskById(int taskId) {
