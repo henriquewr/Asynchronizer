@@ -57,6 +57,12 @@ Asynchronizer::CancelById(taskId);
 Asynchronizer::CancelAll();
 ```
 
+## **Check if a Delay or Timeout is running**
+To check if a Delay or Timeout is running you can use the *IsRunning* method
+```
+bool isRunning = Asynchronizer::IsRunning(taskId);
+```
+
 # **Using Asynchronizer**
 To use **Asynchronizer**, you will need to use the *Check* method
 ```
