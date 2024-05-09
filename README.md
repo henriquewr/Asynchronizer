@@ -9,14 +9,14 @@ int taskId = Asynchronizer::Delay([](){
   Serial.println("This text will be printed in 10 seconds");
 }, 10000);
 ```
-> Delay: Creates an Delay and returns the delayId
+> Delay: Creates a Delay and returns the delayId
 
 ```
 bool hasBeenUpdated = Asynchronizer::UpdateDelay(taskId, [](){
    Serial.println("Now this text will be printed in 5 seconds");
 }, 5000);
 ```
-> UpdateDelay: Updates an Delay and returns true if the Delay has been updated or false if it has not been updated
+> UpdateDelay: Updates a Delay and returns true if the Delay has been updated or false if it has not been updated
 
 ```
 taskId = Asynchronizer::CreateOrUpdateDelay(taskId, [](){
