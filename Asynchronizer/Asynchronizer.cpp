@@ -8,18 +8,22 @@ static std::vector<std::unique_ptr<Task>> tasks;
 void Asynchronizer::Check() {
     unsigned long currentMillis = millis();
 
-   for (auto& item : tasks) {
+    for (size_t i = tasks.size() - 1; i >= 0; i--) {
+        auto item = tasks[i].get();
+
         if (item->timeMs > currentMillis) {
             continue;
         }
 
-        if (item->callback) {
-            item->callback();
+        auto callback = item->callback;
+        if (callback != nullptr) {
+            callback();
         }
 
-        if (item->afterFire) {
+        if (item->afterFire != nullptr) {
             item->afterFire();
-        } else {
+        }
+        else {
             Asynchronizer::CancelById(item->taskId);
         }
     }
@@ -30,7 +34,7 @@ void Asynchronizer::Check() {
 int Asynchronizer::Interval(std::function<void()> callback, unsigned long timeMs) {
     auto task = Asynchronizer::CreateTask(callback, timeMs);
 
-    task->afterFire = [task, timeMs](){
+    task->afterFire = [task, timeMs]() {
         task->timeMs = (millis() + timeMs);
     };
 
@@ -39,12 +43,12 @@ int Asynchronizer::Interval(std::function<void()> callback, unsigned long timeMs
 
 bool Asynchronizer::UpdateInterval(int taskId, std::function<void()> callback, unsigned long timeMs) {
     auto task = Asynchronizer::GetTaskById(taskId);
-    if(task == NULL){
+    if (task == NULL) {
         return false;
     }
 
     task->callback = callback;
-    task->afterFire = [task, timeMs](){
+    task->afterFire = [task, timeMs]() {
         task->timeMs = (millis() + timeMs);
     };
 
@@ -54,11 +58,11 @@ bool Asynchronizer::UpdateInterval(int taskId, std::function<void()> callback, u
 int Asynchronizer::CreateOrUpdateInterval(int taskId, std::function<void()> callback, unsigned long timeMs) {
     auto result = Asynchronizer::UpdateInterval(taskId, callback, timeMs);
 
-    if(result == false){
+    if (result == false) {
         auto newTaskId = Asynchronizer::Interval(callback, timeMs);
         return newTaskId;
     }
-    
+
     return taskId;
 }
 
@@ -69,7 +73,7 @@ int Asynchronizer::CreateOrUpdateInterval(int taskId, std::function<void()> call
 int Asynchronizer::Delay(std::function<void()> callback, unsigned long timeMs) {
     auto task = Asynchronizer::CreateTask(callback, timeMs);
 
-    task->afterFire = [task](){
+    task->afterFire = [task]() {
         CancelById(task->taskId);
     };
 
@@ -78,7 +82,7 @@ int Asynchronizer::Delay(std::function<void()> callback, unsigned long timeMs) {
 
 bool Asynchronizer::UpdateDelay(int taskId, std::function<void()> callback, unsigned long timeMs) {
     auto task = Asynchronizer::GetTaskById(taskId);
-    if(task == NULL){
+    if (task == nullptr) {
         return false;
     }
 
@@ -91,11 +95,11 @@ bool Asynchronizer::UpdateDelay(int taskId, std::function<void()> callback, unsi
 int Asynchronizer::CreateOrUpdateDelay(int taskId, std::function<void()> callback, unsigned long timeMs) {
     auto result = Asynchronizer::UpdateDelay(taskId, callback, timeMs);
 
-    if(result == false){
+    if (result == false) {
         auto newTaskId = Asynchronizer::Delay(callback, timeMs);
         return newTaskId;
     }
-    
+
     return taskId;
 }
 
@@ -103,10 +107,11 @@ int Asynchronizer::CreateOrUpdateDelay(int taskId, std::function<void()> callbac
 
 void Asynchronizer::CancelById(int taskId) {
     tasks.erase(
-        std::remove_if(tasks.begin(), tasks.end(), [taskId](const std::unique_ptr<Task>& item){
+        std::remove_if(tasks.begin(), tasks.end(), [taskId](const std::unique_ptr<Task>& item) {
             return item->taskId == taskId;
-        }
-    ), tasks.end());
+        }), 
+        tasks.end()
+    );
 }
 
 void Asynchronizer::CancelAll() {
@@ -122,10 +127,10 @@ bool Asynchronizer::IsRunning(int taskId) {
 
 #pragma region PRIVATE
 
-int Asynchronizer::GenerateId(){
+int Asynchronizer::GenerateId() {
     auto id = rand();
 
-    if(id == 0 || Asynchronizer::IsRunning(id))
+    if (id == 0 || Asynchronizer::IsRunning(id))
     {
         return Asynchronizer::GenerateId();
     }
@@ -140,7 +145,8 @@ Task* Asynchronizer::GetTaskById(int taskId) {
 
     if (iterador != tasks.end()) {
         return iterador->get();
-    } else {
+    }
+    else {
         return nullptr;
     }
 }
