@@ -1,28 +1,25 @@
 #include <Arduino.h>
 #include <string>
 #include "Asynchronizer.h"
+#include <memory>
 
-static std::vector<Task*> tasks;
+static std::vector<std::unique_ptr<Task>> tasks;
 
 void Asynchronizer::Check() {
     unsigned long currentMillis = millis();
 
-    for (size_t i = 0; i < tasks.size(); i++) {
-        auto item = tasks[i];
-        
+   for (auto& item : tasks) {
         if (item->timeMs > currentMillis) {
             continue;
         }
 
-        auto callback = item->callback;
-        if(callback != NULL){
-            callback();
+        if (item->callback) {
+            item->callback();
         }
 
-        if(item->afterFire != NULL){
+        if (item->afterFire) {
             item->afterFire();
-        }
-        else{
+        } else {
             Asynchronizer::CancelById(item->taskId);
         }
     }
@@ -105,9 +102,11 @@ int Asynchronizer::CreateOrUpdateDelay(int taskId, std::function<void()> callbac
 #pragma endregion Delay
 
 void Asynchronizer::CancelById(int taskId) {
-    tasks.erase(remove_if(tasks.begin(), tasks.end(), [taskId](auto item){
-        return item->taskId == taskId;
-    }), tasks.end());
+    tasks.erase(
+        std::remove_if(tasks.begin(), tasks.end(), [taskId](const std::unique_ptr<Task>& item){
+            return item->taskId == taskId;
+        }
+    ), tasks.end());
 }
 
 void Asynchronizer::CancelAll() {
@@ -115,7 +114,7 @@ void Asynchronizer::CancelAll() {
 }
 
 bool Asynchronizer::IsRunning(int taskId) {
-    bool isRunning = std::any_of(tasks.begin(), tasks.end(), [taskId](auto task) {
+    bool isRunning = std::any_of(tasks.begin(), tasks.end(), [taskId](const std::unique_ptr<Task>& task) {
         return task->taskId == taskId;
     });
     return isRunning;
@@ -135,22 +134,23 @@ int Asynchronizer::GenerateId(){
 }
 
 Task* Asynchronizer::GetTaskById(int taskId) {
-    auto iterador = find_if(tasks.begin(), tasks.end(), [&](auto item) {
+    auto iterador = find_if(tasks.begin(), tasks.end(), [&](const std::unique_ptr<Task>& item) {
         return item->taskId == taskId;
     });
 
     if (iterador != tasks.end()) {
-        return (*iterador);
+        return iterador->get();
     } else {
-        return NULL;
+        return nullptr;
     }
 }
 
 Task* Asynchronizer::CreateTask(std::function<void()> callback, unsigned long timeMs) {
-    auto taskId = Asynchronizer::GenerateId();
-    auto task = new Task(taskId, (millis() + timeMs), callback);
-    tasks.push_back(task);
-    return task;
+    auto taskId = GenerateId();
+    auto task = std::make_unique<Task>(taskId, millis() + timeMs, callback);
+    auto rawTaskPtr = task.get();
+    tasks.push_back(std::move(task));
+    return rawTaskPtr;
 }
 
 #pragma endregion PRIVATE
