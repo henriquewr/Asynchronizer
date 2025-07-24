@@ -8,7 +8,7 @@ static std::vector<std::unique_ptr<Task>> tasks;
 void Asynchronizer::Check() {
     unsigned long currentMillis = millis();
 
-    for (size_t i = tasks.size() - 1; i >= 0; i--) {
+    for (size_t i = tasks.size(); i-- > 0;) {
         auto item = tasks[i].get();
 
         if (item->timeMs > currentMillis) {
